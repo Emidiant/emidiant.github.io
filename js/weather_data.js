@@ -157,7 +157,8 @@ async function gettingJSONbyCoord(lat, lon) {
 
     const api_key = '52fd465732929bce2b208cdcf6b2c155';
     loader.style.display = "";
-    await fetch('https://api.openweathermap.org/data/2.5/weather?lat=' + lat + '&lon=' + lon + '&units=metric' + '&appid=' + api_key)
+    // await fetch('https://api.openweathermap.org/data/2.5/weather?lat=' + lat + '&lon=' + lon + '&units=metric' + '&appid=' + api_key)
+    await fetch('http://localhost:3000/weather/coordinates?lat=' + lat + '&long=' + lon)
         .then(function (resp) {
             return resp.json()
         })
@@ -188,7 +189,8 @@ function gettingJSONbyCity(city, method = 'parsing') {
     var clone = document.importNode(t1.content, true);
     tb[0].appendChild(clone);
 
-    fetch('https://api.openweathermap.org/data/2.5/weather?q=' + city + '&units=metric' + '&appid=' + api_key).then(function (resp) {
+    // fetch('https://api.openweathermap.org/data/2.5/weather?q=' + city + '&units=metric' + '&appid=' + api_key).then(function (resp) {
+    fetch('http://localhost:3000/weather/city?city=' + city).then(function (resp) {
         return resp.json()
     }).then(function (data) {
         if (method !== 'parsing'){
