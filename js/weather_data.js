@@ -121,6 +121,10 @@ function cloudsType(percent) {
     return type;
 }
 
+function iconType(name) {
+    return "images/icons/" + name + "@2x.png"
+}
+
 function fillContent(b, p, data, i, h3, temp) {
     h3.textContent = data.name;
     temp.textContent = Math.round(data.main['temp']) + '\u00B0';
@@ -155,10 +159,8 @@ async function gettingJSONbyCoord(lat, lon) {
         }
     }
 
-    const api_key = '52fd465732929bce2b208cdcf6b2c155';
     loader.style.display = "";
-    // await fetch('https://api.openweathermap.org/data/2.5/weather?lat=' + lat + '&lon=' + lon + '&units=metric' + '&appid=' + api_key)
-    await fetch('http://localhost:3000/weather/coordinates?lat=' + lat + '&long=' + lon)
+    await fetch('http://localhost:8080/weather/coordinates?lat=' + lat + '&long=' + lon)
         .then(function (resp) {
             return resp.json()
         })
@@ -169,61 +171,74 @@ async function gettingJSONbyCoord(lat, lon) {
 
 }
 
-function searchCity(city) {
-    let flag = true;
-    for (let i = 0; i < localStorage.length; i++) {
-        let key = localStorage.key(i);
-        if (city === localStorage.getItem(key)){
-            flag = false;
-            alert("Введенный город уже в списке");
-        }
-    }
-    return flag;
-}
+
 function gettingJSONbyCity(city, method = 'parsing') {
     city = city.charAt(0).toUpperCase() + city.substr(1).toLowerCase();
-    const api_key = '52fd465732929bce2b208cdcf6b2c155';
 
     t1 = document.querySelector('#fav-city-loader');
     var tb = document.getElementsByTagName("ulcity");
     var clone = document.importNode(t1.content, true);
     tb[0].appendChild(clone);
+    if (method === 'parsing') {
+        fetch('http://localhost:8080/weather/city?city=' + city).then(function (resp) {
+            return resp.json()
+        }).then(function (data) {
+            fillingInfoCity(data, city, method);
+        }).catch(err => {
+            console.log(err)
+        })
+    } else {
+        let cities_req = null;
+        let request = new XMLHttpRequest();
 
-    // fetch('https://api.openweathermap.org/data/2.5/weather?q=' + city + '&units=metric' + '&appid=' + api_key).then(function (resp) {
-    fetch('http://localhost:3000/weather/city?city=' + city).then(function (resp) {
-        return resp.json()
-    }).then(function (data) {
-        if (method !== 'parsing'){
-            if (searchCity(data.name)){
-                cities = []
-                if (localStorage.getItem("array") !== null) {
-                    cities = JSON.parse(localStorage.getItem("array"));
-                    localStorage.removeItem("array")
-                }
-                cities.push(data.name)
-                localStorage.setItem("array", JSON.stringify(cities));
-                fillingInfoCity(data, city, method)
+        request.open('GET',"http://localhost:8080/favourites",false);
+        request.addEventListener('readystatechange', function() {
+            if (request.status === 200) {
+                cities_req = request.responseText;
             }
-        } else {
-            fillingInfoCity(data, city, method)
+        });
+        request.send();
+        let cities_arr = null;
+        if (cities_req !== null){
+            cities_req = cities_req.replace(/"/g,'');
+            cities_req = cities_req.substring(1, cities_req.length-1);
+            cities_arr = cities_req.split(',')
         }
-    }).catch(err => {
-        if (localStorage.getItem("array") !== null){
-            cities = JSON.parse(localStorage.getItem("array"));
-            localStorage.removeItem("array")
-            cities.splice(cities.length - 1, 1);
-            localStorage.setItem("array", JSON.stringify(cities));
-        }
-        deleteCity(city);
-        alert("Введенный город не найден");
-        tb[0].removeChild(tb[0].lastElementChild);
-    })
 
+        fetch('http://localhost:8080/weather/city?city=' + city).then(function (resp) {
+            return resp.json()
+        }).then(function (data) {
+            let flag = true;
+            for (let i = 0; i < cities_arr.length; i++) {
+                if (cities_arr[i] === data.name) {
+                    alert("Введенный город уже есть в списке")
+                    tb[0].removeChild(tb[0].lastElementChild);
+                    flag = false;
+                }
+            }
+            if (flag) {
+                fillingInfoCity(data, city, method)
+                let request = new XMLHttpRequest();
+                let city_name = data.name;
+                request.open('POST',"http://localhost:8080/favourites?city_name=" + city_name,true);
+                request.addEventListener('readystatechange', function() {
+                    if (request.status === 200) {
+                        console.log(request);
+                        console.log(request.responseText);
+                    }
+                });
+                request.send();
+            }
+        }).catch(err => {
+            deleteCity(city);
+            alert("Введенный город не найден");
+            tb[0].removeChild(tb[0].lastElementChild);
+        })
+    }
 }
 
 function fillingInfoCity(data, city, method) {
     if ('content' in document.createElement('template')) {
-        localStorage.setItem(city, data.name);
         var t1 = document.querySelector('#fav-city'),
             temp = t1.content.querySelector("p"),
             p = t1.content.querySelectorAll("p"),
@@ -232,7 +247,10 @@ function fillingInfoCity(data, city, method) {
             icon = t1.content.querySelector("#imgcity");
 
         fillContent(b, p, data, 1, h3, temp);
-        icon.innerHTML = `<img src="https://openweathermap.org/img/wn/${data.weather[0]['icon']}@2x.png " width="48" height="48" alt="${data.weather[0]['main']}">`;
+
+        let path = iconType(data.weather[0]['icon'])
+        icon.innerHTML = `<img src=${path} width="48" height="48" alt="${data.weather[0]['main']}">`;
+        // icon.innerHTML = `<img src=${src_icon} width="48" height="48" alt="${data.weather[0]['main']}">`;
         var tb = document.getElementsByTagName("ulcity");
         var clone = document.importNode(t1.content, true);
         if (method === 'parsing') {
@@ -261,7 +279,8 @@ function fillingInfo(data) {
 
 
         icon.removeChild(icon.firstChild);
-        icon.innerHTML = `<img src="https://openweathermap.org/img/wn/${data.weather[0]['icon']}@2x.png ">` + icon.innerHTML;
+        let path = iconType(data.weather[0]['icon'])
+        icon.innerHTML = `<img src=${path}>` + icon.innerHTML;
 
 
         var tb = document.getElementsByTagName("uldata");
@@ -297,14 +316,7 @@ function addCity() {
     let city = formData.get('new-city-input').toString().toLowerCase();
     form.reset();
     city = city.charAt(0).toUpperCase() + city.substr(1).toLowerCase();
-    if (localStorage.getItem(city) !== null){
-        alert("Введенный город уже в списке");
-    } else {
-        if (searchCity(city) && city !== ''){
-            gettingJSONbyCity(city, 'add')
-        }
-    }
-
+    gettingJSONbyCity(city, 'add')
 }
 
 function deleteCity(a){
@@ -316,24 +328,14 @@ function deleteCity(a){
         cityName = b.childNodes[1].textContent;
         c = b.parentNode;
 
-        cities = JSON.parse(localStorage.getItem("array"));
-        localStorage.removeItem("array")
-        for (let i = 0; i < cities.length; i++) {
-            if (cities[i] === cityName){
-                cities.splice(i, 1);
-                localStorage.setItem("array", JSON.stringify(cities));
-            }
+        fetch('http://localhost:8080/favourites?city_name=' + cityName, {
+            method: 'DELETE'
+        }).then(r => {
+            console.log(r)
+        });
 
-        }
-        for (let i = 0; i < localStorage.length; i++) {
-            let key = localStorage.key(i);
-            if (cityName === localStorage.getItem(key)){
-                localStorage.removeItem(key)
-            }
-        }
         c.parentNode.removeChild(c);
     }
-    localStorage.removeItem(cityName)
 }
 
 function sleep(milliseconds) {
@@ -344,15 +346,28 @@ function sleep(milliseconds) {
     } while (currentDate - date < milliseconds);
 }
 
-function parsing() {
-    if (localStorage.getItem("array") !== null) {
-        cities = JSON.parse(localStorage.getItem("array"));
+async function parsing() {
+    let cities_req = null;
+    let request = new XMLHttpRequest();
 
-        for (let i = 0; i < cities.length; i++) {
-            sleep(500)
-            gettingJSONbyCity(cities[i], 'parsing')
+    request.open('GET',"http://localhost:8080/favourites",false);
+    request.addEventListener('readystatechange', function() {
+        if (request.status===200) {
+            cities_req = request.responseText;
         }
+    });
+    request.send();
 
+    if (cities_req !== null){
+        cities_req = cities_req.replace(/"/g,'');
+        cities_req = cities_req.substring(1, cities_req.length-1);
+        let cities_arr = cities_req.split(',')
+        console.log(cities_arr)
+
+        for (let i = 0; i < cities_arr.length; i++) {
+            sleep(500)
+            gettingJSONbyCity(cities_arr[i], 'parsing')
+        }
     }
 }
 
@@ -362,5 +377,4 @@ document.forms.namedItem('addCity').addEventListener('submit', (event) => {
     addCity();
     event.preventDefault();
 })
-// localStorage.clear()
 parsing()
