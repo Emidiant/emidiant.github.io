@@ -206,7 +206,9 @@ function gettingJSONbyCity(city, method = 'parsing') {
         }
 
         fetch('http://localhost:8080/weather/city?city=' + city).then(function (resp) {
-            return resp.json()
+            if (resp !== 404) {
+                return resp.json()
+            }
         }).then(function (data) {
             let flag = true;
             for (let i = 0; i < cities_arr.length; i++) {
@@ -223,8 +225,6 @@ function gettingJSONbyCity(city, method = 'parsing') {
                 request.open('POST',"http://localhost:8080/favourites?city_name=" + city_name,true);
                 request.addEventListener('readystatechange', function() {
                     if (request.status === 200) {
-                        console.log(request);
-                        console.log(request.responseText);
                     }
                 });
                 request.send();
@@ -250,7 +250,6 @@ function fillingInfoCity(data, city, method) {
 
         let path = iconType(data.weather[0]['icon'])
         icon.innerHTML = `<img src=${path} width="48" height="48" alt="${data.weather[0]['main']}">`;
-        // icon.innerHTML = `<img src=${src_icon} width="48" height="48" alt="${data.weather[0]['main']}">`;
         var tb = document.getElementsByTagName("ulcity");
         var clone = document.importNode(t1.content, true);
         if (method === 'parsing') {
@@ -314,9 +313,11 @@ function addCity() {
     let form = document.forms.namedItem('addCity');
     const formData = new FormData(form);
     let city = formData.get('new-city-input').toString().toLowerCase();
-    form.reset();
-    city = city.charAt(0).toUpperCase() + city.substr(1).toLowerCase();
-    gettingJSONbyCity(city, 'add')
+    if (city.length > 0) {
+        form.reset();
+        city = city.charAt(0).toUpperCase() + city.substr(1).toLowerCase();
+        gettingJSONbyCity(city, 'add')
+    }
 }
 
 function deleteCity(a){
@@ -330,11 +331,13 @@ function deleteCity(a){
 
         fetch('http://localhost:8080/favourites?city_name=' + cityName, {
             method: 'DELETE'
-        }).then(r => {
-            console.log(r)
-        });
-
-        c.parentNode.removeChild(c);
+        }).then(function (resp) {
+            if (resp.status === 200) {
+                c.parentNode.removeChild(c);
+            }
+        }).catch(err => {
+            console.log(err)
+        })
     }
 }
 
@@ -352,17 +355,16 @@ async function parsing() {
 
     request.open('GET',"http://localhost:8080/favourites",false);
     request.addEventListener('readystatechange', function() {
-        if (request.status===200) {
+        if (request.status === 200) {
             cities_req = request.responseText;
         }
     });
     request.send();
 
-    if (cities_req !== null){
+    if (cities_req.length > 2){
         cities_req = cities_req.replace(/"/g,'');
         cities_req = cities_req.substring(1, cities_req.length-1);
         let cities_arr = cities_req.split(',')
-        console.log(cities_arr)
 
         for (let i = 0; i < cities_arr.length; i++) {
             sleep(500)
