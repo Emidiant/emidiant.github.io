@@ -3,16 +3,56 @@ const fetch = require("node-fetch");
 const app = express()
 const port = 8080
 const api_key = '52fd465732929bce2b208cdcf6b2c155'
-const mysql = require("mysql2");
 const cors = require('cors')
 const createError = require('http-errors')
 
-const connection = mysql.createConnection({
-    host: "localhost",
-    user: "root",
-    database: "FAVOURITES",
-    password: "Emidiant17!"
-});
+
+const pg = require('pg');
+
+const config = {
+    host: 'localhost',
+    user: 'root',
+    password: 'Emidiant17!',
+    database: 'favourites',
+    port: 5432
+};
+
+const client = new pg.Client(config);
+
+client.connect();
+
+function queryDatabase() {
+
+    console.log(`Running query to PostgreSQL server: ${config.host}`);
+
+
+}
+
+
+
+// const pg = require('pg');
+// const conString = "postgres://root:Emidiant17!@localhost:5432/favourites";
+// const client = new pg.Client(conString);
+// client.connect();
+
+// const pool = new Pool({
+//     user: "root",
+//     host: "localhost",
+//     database: "favourites",
+//     password: "Emidiant17!",
+//     port: "5432"
+// })
+
+// pool.connect();
+
+
+
+// const connection = mysql.createConnection({
+//     host: "localhost",
+//     user: "root",
+//     database: "FAVOURITES",
+//     password: "Emidiant17!"
+// });
 
 app.use(cors())
 
@@ -25,14 +65,14 @@ app.use((req, res, next) => {
 });
 
 
-connection.connect(function(err){
-    if (err) {
-        return console.error("Ошибка: " + err.message);
-    }
-    else{
-        console.log("Подключение к серверу MySQL успешно установлено");
-    }
-});
+// connection.connect(function(err){
+//     if (err) {
+//         return console.error("Ошибка: " + err.message);
+//     }
+//     else{
+//         console.log("Подключение к серверу MySQL успешно установлено");
+//     }
+// });
 
 // http://localhost:3000/weather/city?city=Moscow
 app.get('/weather/city', (req, res) => {
@@ -62,15 +102,21 @@ app.get('/weather/coordinates', (req, res) => {
 })
 
 app.get('/favourites', (req, res) => {
-    let sql = "SELECT * FROM cities"
-    connection.query(sql, function(err, data) {
-        if(err) return console.log(err);
-        let cities = []
-        for (let i = 0; i < data.length; i++) {
-            cities.push(data[i].city_name)
-        }
-        res.send(cities)
-    });
+
+    const query = 'SELECT * FROM cities;';
+
+    client.query(query)
+        .then(data => {
+            let cities_data = data.rows;
+            let cities = []
+            for (let i = 0; i < cities_data.length; i++) {
+                cities.push(cities_data[i].city_name)
+            }
+            res.send(cities)
+        })
+        .catch(err => {
+            console.log(err);
+        });
 })
 
 app.post('/favourites', (req, res) => {
@@ -80,16 +126,16 @@ app.post('/favourites', (req, res) => {
     let textType = typeof city_name;
 
     res.setHeader('Content-Type', `text/${textType}; charset=UTF-8`)
-    let sql = "INSERT INTO cities (city_name) VALUES (?)"
-    connection.query(sql, [city_name], function(err, results) {
-        if(err) return console.log(err);
-        try {
-            res.sendStatus(200);
-        } catch (error) {
-            throw createError(400, `City ${city_name} existы`)
-        }
+    let query = "INSERT INTO cities (city_name) VALUES ('"+ city_name + "')";
 
-    });
+    client.query(query)
+        .then(() => {
+            res.sendStatus(200);
+
+        })
+        .catch(err => {
+            res.sendStatus(400);
+        });
 })
 
 app.options('*', (req, res) => {
@@ -100,21 +146,25 @@ app.options('*', (req, res) => {
 
 app.delete('/favourites', (req, res) => {
     let city_name = '\'' + req.query.city_name + '\'';
-    let sql = 'DELETE FROM cities WHERE city_name=' + city_name;
+    let query = 'DELETE FROM cities WHERE city_name=' + city_name;
 
-    connection.query(sql, function( err, results) {
-        try {
-            res.send(city_name + ' deleted')
-        } catch (error) {
+
+    client
+        .query(query)
+        .then(result => {
+            res.send(city_name + ' deleted');
+        })
+        .catch(err => {
             res.sendStatus(400);
-            console.log(error)
-        }
-    });
+            console.log(err);
+            throw err;
+        });
 
 
 });
 
 
 app.listen(port, () => {
+
     console.log(`App listening at http://localhost:${port}`)
 })
