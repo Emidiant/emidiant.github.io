@@ -21,38 +21,6 @@ const client = new pg.Client(config);
 
 client.connect();
 
-function queryDatabase() {
-
-    console.log(`Running query to PostgreSQL server: ${config.host}`);
-
-
-}
-
-
-
-// const pg = require('pg');
-// const conString = "postgres://root:Emidiant17!@localhost:5432/favourites";
-// const client = new pg.Client(conString);
-// client.connect();
-
-// const pool = new Pool({
-//     user: "root",
-//     host: "localhost",
-//     database: "favourites",
-//     password: "Emidiant17!",
-//     port: "5432"
-// })
-
-// pool.connect();
-
-
-
-// const connection = mysql.createConnection({
-//     host: "localhost",
-//     user: "root",
-//     database: "FAVOURITES",
-//     password: "Emidiant17!"
-// });
 
 app.use(cors())
 
@@ -64,15 +32,6 @@ app.use((req, res, next) => {
     next();
 });
 
-
-// connection.connect(function(err){
-//     if (err) {
-//         return console.error("Ошибка: " + err.message);
-//     }
-//     else{
-//         console.log("Подключение к серверу MySQL успешно установлено");
-//     }
-// });
 
 // http://localhost:3000/weather/city?city=Moscow
 app.get('/weather/city', (req, res) => {
@@ -122,7 +81,6 @@ app.get('/favourites', (req, res) => {
 app.post('/favourites', (req, res) => {
     let city_name = req.query.city_name;
 
-    // city_name = encodeURI(city_name);
     let textType = typeof city_name;
 
     res.setHeader('Content-Type', `text/${textType}; charset=UTF-8`)
@@ -131,7 +89,6 @@ app.post('/favourites', (req, res) => {
     client.query(query)
         .then(() => {
             res.sendStatus(200);
-
         })
         .catch(err => {
             res.sendStatus(400);
@@ -165,6 +122,5 @@ app.delete('/favourites', (req, res) => {
 
 
 app.listen(port, () => {
-
     console.log(`App listening at http://localhost:${port}`)
 })
