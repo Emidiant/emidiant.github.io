@@ -1,5 +1,3 @@
-let cities = [];
-
 function windSpeed(speed) {
     var windDescription;
 

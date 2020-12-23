@@ -4,22 +4,24 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node app.js",
+    "test": "mocha tests/*.js --exit"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@frangiskos/mssql": "^0.4.0",
     "body-parser": "^1.19.0",
+    "chai": "^4.2.0",
+    "chai-fetch-mock": "^3.0.0",
+    "chai-http": "^4.3.0",
     "cors": "^2.8.5",
     "express": "^4.17.1",
-    "hbs": "^4.1.1",
-    "http-errors": "^1.8.0",
-    "mysql": "^2.18.1",
-    "mysql2": "^2.2.5",
+    "fetch-mock": "^9.11.0",
+    "mocha": "^8.2.1",
+    "mongodb": "^3.6.3",
     "node-fetch": "^2.6.1",
-    "pg": "^8.5.1",
-    "pg-promise": "^10.8.1"
+    "sinon": "^9.2.2",
+    "sinon-mongo": "^1.1.0"
   },
   "devDependencies": {
     "request": "^2.88.2"

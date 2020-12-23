@@ -1,26 +1,12 @@
-const express = require('express')
+const express = require('express');
 const fetch = require("node-fetch");
-const app = express()
-const port = 8080
-const api_key = '52fd465732929bce2b208cdcf6b2c155'
-const cors = require('cors')
-const createError = require('http-errors')
+const app = express();
+const port = 8080;
+const cors = require('cors');
 
-
-const pg = require('pg');
-
-const config = {
-    host: 'localhost',
-    user: 'root',
-    password: 'Emidiant17!',
-    database: 'favourites',
-    port: 5432
-};
-
-const client = new pg.Client(config);
-
-client.connect();
-
+const apiKey = '52fd465732929bce2b208cdcf6b2c155';
+const openWeatherUrl = 'https://api.openweathermap.org/data/2.5/weather';
+const db = require('./db');
 
 app.use(cors())
 
@@ -33,67 +19,62 @@ app.use((req, res, next) => {
 });
 
 
-// http://localhost:3000/weather/city?city=Moscow
 app.get('/weather/city', (req, res) => {
     let city = req.query.city;
     city = encodeURI(city);
-    fetch('https://api.openweathermap.org/data/2.5/weather?q=' + city + '&units=metric' + '&appid=' + api_key).then(function (resp) {
+    fetch(openWeatherUrl + '?q=' + city + '&units=metric' + '&appid=' + apiKey).then(function (resp) {
         if (resp.status === 200) {
             return resp.json()
         } else {
-            return 404
+            return res.sendStatus(404)
         }
     }).then(function (data) {
         res.send(data)
     })
 })
 
+
 app.get('/weather/coordinates', (req, res) => {
     let lat = req.query.lat;
     let lon = req.query.long;
-    fetch('https://api.openweathermap.org/data/2.5/weather?lat=' + lat + '&lon=' + lon + '&units=metric' + '&appid=' + api_key)
+    fetch(openWeatherUrl + '?lat=' + lat + '&lon=' + lon + '&units=metric' + '&appid=' + apiKey)
         .then(function (resp) {
-            return resp.json()
+            if (resp.status === 200) {
+                return resp.json()
+            } else {
+                return res.sendStatus(404)
+            }
         })
         .then(function (data) {
             res.send(data)
         })
 })
 
+
 app.get('/favourites', (req, res) => {
 
-    const query = 'SELECT * FROM cities;';
-
-    client.query(query)
-        .then(data => {
-            let cities_data = data.rows;
-            let cities = []
-            for (let i = 0; i < cities_data.length; i++) {
-                cities.push(cities_data[i].city_name)
-            }
-            res.send(cities)
-        })
-        .catch(err => {
-            console.log(err);
-        });
+    db.getAllCities().then((result) => {
+        res.send(result)
+    }).catch((err) => {
+        res.sendStatus(503);
+    })
 })
+
 
 app.post('/favourites', (req, res) => {
     let city_name = req.query.city_name;
-
     let textType = typeof city_name;
-
     res.setHeader('Content-Type', `text/${textType}; charset=UTF-8`)
-    let query = "INSERT INTO cities (city_name) VALUES ('"+ city_name + "')";
 
-    client.query(query)
-        .then(() => {
+    db.insertCity(city_name).then((result) => {
+        if (result) {
             res.sendStatus(200);
-        })
-        .catch(err => {
-            res.sendStatus(400);
-        });
+        } else {
+            res.sendStatus(404);
+        }
+    });
 })
+
 
 app.options('*', (req, res) => {
     res.set('Access-Control-Allow-Origin', '*');
@@ -101,26 +82,18 @@ app.options('*', (req, res) => {
     res.send('ok');
 });
 
+
 app.delete('/favourites', (req, res) => {
-    let city_name = '\'' + req.query.city_name + '\'';
-    let query = 'DELETE FROM cities WHERE city_name=' + city_name;
+    let city_name = req.query.city_name;
 
-
-    client
-        .query(query)
-        .then(result => {
-            res.send(city_name + ' deleted');
-        })
-        .catch(err => {
-            res.sendStatus(400);
-            console.log(err);
-            throw err;
-        });
-
-
+    db.deleteCity(city_name).then((result) => {
+        res.sendStatus(200);
+    });
 });
 
 
 app.listen(port, () => {
     console.log(`App listening at http://localhost:${port}`)
 })
+
+module.exports = app
