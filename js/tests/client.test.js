@@ -8,15 +8,12 @@ const assert = require('assert');
 const afterEach = mocha.afterEach;
 const beforeEach = mocha.beforeEach;
 require('sinon-mongo');
-// const fetch = require('isomorphic-fetch');
 const fetchMock = require('fetch-mock');
 const describe = mocha.describe;
 const it = mocha.it;
 chai.should();
 const JSDOM = require('jsdom').JSDOM;
-// global.windDirection = require('../utils').windDirection;
-// global.getIcon = require('../utils').getIcon;
-// global.sanitize = require('../utils').sanitize;
+
 
 const html = `<head>
         <meta charset="UTF-8">

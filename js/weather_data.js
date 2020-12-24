@@ -382,11 +382,9 @@ function init() {
 
 module.exports = {
     init: init,
-    fillContent: fillContent,
     gettingJSONbyCoord: gettingJSONbyCoord,
     gettingJSONbyCity: gettingJSONbyCity,
     fillingInfoCity: fillingInfoCity,
-    fillingInfo: fillingInfo,
     getCurrentCity: getCurrentCity,
     addCity: addCity,
     deleteCity: deleteCity,
