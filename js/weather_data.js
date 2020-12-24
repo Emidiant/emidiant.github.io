@@ -1,3 +1,4 @@
+
 function windSpeed(speed) {
     var windDescription;
 
@@ -141,7 +142,7 @@ function fillContent(b, p, data, i, h3, temp) {
 }
 
 
-async function gettingJSONbyCoord(lat, lon) {
+function gettingJSONbyCoord(lat, lon) {
     let loader = document.getElementsByClassName('preloader')[0];
 
     var tb = document.getElementsByTagName("uldata")[0];
@@ -158,7 +159,7 @@ async function gettingJSONbyCoord(lat, lon) {
     }
 
     loader.style.display = "";
-    await fetch('http://localhost:8080/weather/coordinates?lat=' + lat + '&long=' + lon)
+    return fetch('http://localhost:8080/weather/coordinates?lat=' + lat + '&long=' + lon)
         .then(function (resp) {
             return resp.json()
         })
@@ -178,37 +179,34 @@ function gettingJSONbyCity(city, method = 'parsing') {
     var clone = document.importNode(t1.content, true);
     tb[0].appendChild(clone);
     if (method === 'parsing') {
-        fetch('http://localhost:8080/weather/city?city=' + city).then(function (resp) {
+        return fetch('http://localhost:8080/weather/city?city=' + city).then(function (resp) {
             return resp.json()
         }).then(function (data) {
             fillingInfoCity(data, city, method);
+            return data
         }).catch(err => {
             console.log(err)
         })
     } else {
-        let cities_req = null;
-        let request = new XMLHttpRequest();
-
-        request.open('GET',"http://localhost:8080/favourites",false);
-        request.addEventListener('readystatechange', function() {
-            if (request.status === 200) {
-                cities_req = request.responseText;
-            }
-        });
-        request.send();
         let cities_arr = null;
-        if (cities_req !== null){
-            cities_req = cities_req.replace(/"/g,'');
-            cities_req = cities_req.substring(1, cities_req.length-1);
-            cities_arr = cities_req.split(',')
-        }
 
-        fetch('http://localhost:8080/weather/city?city=' + city).then(function (resp) {
+        fetch('http://localhost:8080/favourites', {
+            method: 'GET'
+        }).then(function (resp) {
+            return resp.json()
+        }).then(function (data) {
+            cities_arr = data;
+        }).catch(err => {
+            console.log(err)
+        })
+
+        return fetch('http://localhost:8080/weather/city?city=' + city).then(function (resp) {
             if (resp !== 404) {
                 return resp.json()
             }
         }).then(function (data) {
             let flag = true;
+
             for (let i = 0; i < cities_arr.length; i++) {
                 if (cities_arr[i] === data.name) {
                     alert("Введенный город уже есть в списке")
@@ -218,17 +216,17 @@ function gettingJSONbyCity(city, method = 'parsing') {
             }
             if (flag) {
                 fillingInfoCity(data, city, method)
-                let request = new XMLHttpRequest();
                 let city_name = data.name;
-                request.open('POST',"http://localhost:8080/favourites?city_name=" + city_name,true);
-                request.addEventListener('readystatechange', function() {
-                    if (request.status === 200) {
-                    }
-                });
-                request.send();
+
+                fetch('http://localhost:8080/favourites?city_name=' + city_name, {
+                    method: 'POST'
+                }).then(function (resp) {
+                    return resp.json()
+                }).catch(err => {
+                    console.log(err)
+                })
             }
         }).catch(err => {
-            deleteCity(city);
             alert("Введенный город не найден");
             tb[0].removeChild(tb[0].lastElementChild);
         })
@@ -255,6 +253,7 @@ function fillingInfoCity(data, city, method) {
         } else {
             tb[0].removeChild(tb[0].lastElementChild);
         }
+
         tb[0].appendChild(clone);
     }
 }
@@ -291,20 +290,25 @@ function fillingInfo(data) {
 }
 
 function getCurrentCity() {
+    let longitude = null;
+    let latitude= null;
     function success(position) {
-        const latitude = position.coords.latitude;
-        const longitude = position.coords.longitude;
-        gettingJSONbyCoord(Math.round(latitude * 1000) / 1000, Math.round(longitude * 1000) / 1000)
+
+        latitude = position.coords.latitude;
+        longitude = position.coords.longitude;
+        return gettingJSONbyCoord(Math.round(latitude * 1000) / 1000, Math.round(longitude * 1000) / 1000)
     }
 
     function error() {
-        gettingJSONbyCoord(-8.669786, 115.213571)
+        return gettingJSONbyCoord(-8.669786, 115.213571)
     }
 
     if (!navigator.geolocation) {
     } else {
-        navigator.geolocation.getCurrentPosition(success, error);
+         navigator.geolocation.getCurrentPosition(success, error);
     }
+
+
 }
 
 function addCity() {
@@ -320,23 +324,22 @@ function addCity() {
 
 function deleteCity(a){
     let cityName, b, c;
-    if (typeof a === 'string'){
-        cityName = a
-    } else {
-        b = a.parentNode;
-        cityName = b.childNodes[1].textContent;
-        c = b.parentNode;
 
-        fetch('http://localhost:8080/favourites?city_name=' + cityName, {
-            method: 'DELETE'
-        }).then(function (resp) {
-            if (resp.status === 200) {
-                c.parentNode.removeChild(c);
-            }
-        }).catch(err => {
-            console.log(err)
-        })
-    }
+    b = a.parentNode;
+    cityName = b.childNodes[1].textContent;
+    console.log(cityName);
+    c = b.parentNode;
+
+    return fetch('http://localhost:8080/favourites?city_name=' + cityName, {
+        method: 'DELETE'
+    }).then(function (resp) {
+        if (resp.status === 200) {
+            console.log("remove")
+            c.parentNode.removeChild(c);
+        }
+    }).catch(err => {
+        console.log(err)
+    })
 }
 
 function sleep(milliseconds) {
@@ -347,34 +350,48 @@ function sleep(milliseconds) {
     } while (currentDate - date < milliseconds);
 }
 
-async function parsing() {
-    let cities_req = null;
-    let request = new XMLHttpRequest();
+function parsing() {
 
-    request.open('GET',"http://localhost:8080/favourites",false);
-    request.addEventListener('readystatechange', function() {
-        if (request.status === 200) {
-            cities_req = request.responseText;
-        }
-    });
-    request.send();
-
-    if (cities_req.length > 2){
-        cities_req = cities_req.replace(/"/g,'');
-        cities_req = cities_req.substring(1, cities_req.length-1);
-        let cities_arr = cities_req.split(',')
-
+    let cities_arr = null;
+    fetch('http://localhost:8080/favourites', {
+        method: 'GET'
+    }).then(function (resp) {
+        return resp.json()
+    }).then(function (data) {
+        cities_arr = data;
         for (let i = 0; i < cities_arr.length; i++) {
             sleep(500)
             gettingJSONbyCity(cities_arr[i], 'parsing')
         }
-    }
+    }).catch(err => {
+        console.log(err)
+    })
 }
 
-getCurrentCity()
-document.querySelector('#find-me').addEventListener('click', getCurrentCity);
-document.forms.namedItem('addCity').addEventListener('submit', (event) => {
-    addCity();
-    event.preventDefault();
-})
-parsing()
+
+function init() {
+    getCurrentCity()
+    document.querySelector('#find-me').addEventListener('click', getCurrentCity);
+    document.forms.namedItem('addCity').addEventListener('submit', (event) => {
+        addCity();
+        event.preventDefault();
+    })
+    parsing()
+}
+
+
+module.exports = {
+    init: init,
+    windSpeed: windSpeed,
+    windDirection: windDirection,
+    cloudsType: cloudsType,
+    iconType: iconType,
+    fillContent: fillContent,
+    gettingJSONbyCoord: gettingJSONbyCoord,
+    gettingJSONbyCity: gettingJSONbyCity,
+    fillingInfoCity: fillingInfoCity,
+    fillingInfo: fillingInfo,
+    getCurrentCity: getCurrentCity,
+    addCity: addCity,
+    deleteCity: deleteCity
+};
