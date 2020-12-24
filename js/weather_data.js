@@ -250,11 +250,13 @@ function fillingInfoCity(data, city, method) {
         var clone = document.importNode(t1.content, true);
         if (method === 'parsing') {
             tb[0].removeChild(tb[0].children[0]);
-        } else {
+        }
+        if (method === 'add') {
             tb[0].removeChild(tb[0].lastElementChild);
         }
 
         tb[0].appendChild(clone);
+        return tb[0].lastElementChild;
     }
 }
 
@@ -327,14 +329,12 @@ function deleteCity(a){
 
     b = a.parentNode;
     cityName = b.childNodes[1].textContent;
-    console.log(cityName);
     c = b.parentNode;
 
     return fetch('http://localhost:8080/favourites?city_name=' + cityName, {
         method: 'DELETE'
     }).then(function (resp) {
         if (resp.status === 200) {
-            console.log("remove")
             c.parentNode.removeChild(c);
         }
     }).catch(err => {
@@ -353,7 +353,7 @@ function sleep(milliseconds) {
 function parsing() {
 
     let cities_arr = null;
-    fetch('http://localhost:8080/favourites', {
+    return fetch('http://localhost:8080/favourites', {
         method: 'GET'
     }).then(function (resp) {
         return resp.json()
@@ -382,10 +382,6 @@ function init() {
 
 module.exports = {
     init: init,
-    windSpeed: windSpeed,
-    windDirection: windDirection,
-    cloudsType: cloudsType,
-    iconType: iconType,
     fillContent: fillContent,
     gettingJSONbyCoord: gettingJSONbyCoord,
     gettingJSONbyCity: gettingJSONbyCity,
@@ -393,5 +389,6 @@ module.exports = {
     fillingInfo: fillingInfo,
     getCurrentCity: getCurrentCity,
     addCity: addCity,
-    deleteCity: deleteCity
+    deleteCity: deleteCity,
+    parsing: parsing
 };

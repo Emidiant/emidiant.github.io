@@ -108,21 +108,20 @@ const html = `<head>
 
 
 const moscowHtml = `
-    <li>
-        <div class="city">
-            <h3 id="cityname">Moscow</h3>
-            <p>-8°</p>
-            <div id="imgcity"><img src="images/icons/13n@2x.png" width="48" height="48" alt="Snow"></div>
-            <button onclick="deleteCity(this)"></button>
-        </div>
-        <ul class="weather-data">
-            <li><b>Ветер</b><p>Light breeze, 3 m/s, South</p></li>
-            <li><b>Облачность</b><p>Broken clouds</p></li>
-            <li><b>Давление</b><p>1019 hpa</p></li>
-            <li><b>Влажность</b><p>85 %</p></li>
-            <li><b>Координаты</b><p>[37.62, 55.75]</p></li>
-        </ul>
-    </li>`
+                <div class="city">
+                    <h3 id="cityname">Moscow</h3>
+                    <p>-8°</p>
+                    <div id="imgcity"><img src="images/icons/13n@2x.png" width="48" height="48" alt="Snow"></div>
+                    <button onclick="deleteCity(this)"></button>
+                </div>
+                <ul class="weather-data">
+                    <li><b>Ветер</b><p>Light breeze, 3 m/s, South</p></li>
+                    <li><b>Облачность</b><p>Broken clouds</p></li>
+                    <li><b>Давление</b><p>1019 hpa</p></li>
+                    <li><b>Влажность</b><p>85 %</p></li>
+                    <li><b>Координаты</b><p>[37.62, 55.75]</p></li>
+                </ul>
+            `;
 
 const moscowResponse = {
     clouds: {all: 90},
@@ -169,6 +168,12 @@ describe('CLIENT: info about city innerHTML', () => {
         fetchMock.reset();
         fetchMock.restore();
     });
+
+    it('filling city info', (done) =>{
+        let clone = client.fillingInfoCity(moscowResponse, 'Moscow', '');
+        clone.innerHTML.should.be.eql(moscowHtml);
+        done();
+    })
 
 
     it('adding a new city to html', (done) => {
@@ -315,6 +320,26 @@ describe('CLIENT: delete city', () => {
         client.deleteCity(countButtonAfterDelete[1]).then((res) => {
             document.getElementsByClassName('button').length.should.be.eql(countButtonAfterDelete.length - 1);
         });
+        done();
+    });
+})
+
+describe('CLIENT: parsing database', () => {
+
+    afterEach(() => {
+        fetchMock.reset();
+        fetchMock.restore();
+    });
+
+    it('getAll favourite city', (done) => {
+        client = require('../weather_data');
+        fetchMock.get(`http://localhost:8080/favourites`, ['Moscow']);
+        fetchMock.once('http://localhost:8080/weather/city?city=Moscow', moscowResponse);
+        client.parsing().then((res) => {
+            const parsingCity = document.getElementsByTagName('ulcity')[0];
+            parsingCity.innerHTML.should.be.eql(moscowHtml);
+            done();
+        })
         done();
     });
 })
